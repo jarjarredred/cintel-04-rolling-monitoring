@@ -63,7 +63,7 @@ DATA_DIR: Final[Path] = ROOT_DIR / "data"
 ARTIFACTS_DIR: Final[Path] = ROOT_DIR / "artifacts"
 
 DATA_FILE: Final[Path] = DATA_DIR / "system_metrics_timeseries_case.csv"
-OUTPUT_FILE: Final[Path] = ARTIFACTS_DIR / "rolling_metrics_case.csv"
+OUTPUT_FILE: Final[Path] = ARTIFACTS_DIR / "rolling_metrics_jarred.csv"
 
 # === DEFINE THE MAIN FUNCTION ===
 
@@ -126,11 +126,15 @@ def main() -> None:
     )
 
     # ----------------------------------------------------
-    # STEP 3.2: DEFINE ROLLING MEAN FOR # OF ERRORS
+    # STEP 3.2: DEFINE ROLLING MEAN AND STD FOR # OF ERRORS
     # ----------------------------------------------------
-    # The `errors` column holds the count of errors encountered at each timestamp.
     errors_rolling_mean_recipe: pl.Expr = (
         pl.col("errors").rolling_mean(WINDOW_SIZE).alias("errors_rolling_mean")
+    )
+
+    # NEW: Rolling standard deviation to monitor error volatility
+    errors_rolling_std_recipe: pl.Expr = (
+        pl.col("errors").rolling_std(WINDOW_SIZE).alias("errors_rolling_std")
     )
 
     # ----------------------------------------------------
@@ -146,11 +150,11 @@ def main() -> None:
     # ----------------------------------------------------
     # STEP 3.4: APPLY THE ROLLING RECIPES IN A NEW DATAFRAME
     # ----------------------------------------------------
-    # with_columns() evaluates the recipes and adds the new columns
     df_with_rolling = df.with_columns(
         [
             requests_rolling_mean_recipe,
             errors_rolling_mean_recipe,
+            errors_rolling_std_recipe,  # Added to the evaluation list
             latency_rolling_mean_recipe,
         ]
     )
